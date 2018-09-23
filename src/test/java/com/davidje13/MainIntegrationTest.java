@@ -21,6 +21,28 @@ public class MainIntegrationTest {
 	}
 
 	@Test
+	public void main_isCaseInsensitiveForInputWords() {
+		String out = getStdOutFrom(() -> Main.main(new String[] {
+				getResource("word-list.txt").getPath(),
+				"CAT",
+				"DOG"
+		}));
+
+		assertThat(out, equalTo("cat\ncot\ncog\ndog\n"));
+	}
+
+	@Test
+	public void main_loadsWordsFromWordListInLowercase() {
+		String out = getStdOutFrom(() -> Main.main(new String[] {
+				getResource("word-list.txt").getPath(),
+				"gold",
+				"gold"
+		}));
+
+		assertThat(out, equalTo("gold\n"));
+	}
+
+	@Test
 	public void main_reportsIfNoChainCanBeFound() {
 		String out = getStdOutFrom(() -> Main.main(new String[] {
 				getResource("word-list.txt").getPath(),

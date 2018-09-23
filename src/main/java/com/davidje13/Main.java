@@ -17,9 +17,13 @@ public class Main {
 
 		try {
 			Files.lines(new File(args[0]).toPath(), utf8)
+					.map(String::toLowerCase)
 					.forEach(finder::registerWord);
 
-			Optional<List<String>> path = finder.traverse(args[1], args[2]);
+			Optional<List<String>> path = finder.traverse(
+					args[1].toLowerCase(),
+					args[2].toLowerCase()
+			);
 			if (!path.isPresent()) {
 				System.err.println("No word chain found!");
 			} else {

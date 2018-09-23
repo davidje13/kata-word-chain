@@ -28,3 +28,4 @@ rot
 lot
 pot
 pop
+GOLD
