@@ -56,4 +56,27 @@ public class MainIntegrationTest {
 		assertThat(output.out, equalTo(""));
 		assertThat(output.err, equalTo("No word chain found!\n"));
 	}
+
+	@Test
+	public void main_reportsIfTheWordListCannotBeLoaded() {
+		Output output = getOutputFrom(() -> Main.main(new String[] {"nope"}));
+
+		assertThat(output.out, equalTo(""));
+		assertThat(output.err, equalTo(
+				"Failed to load word list from nope\n"
+		));
+	}
+
+	@Test
+	public void main_showsUsageInformationIfNoParametersGiven() {
+		Output output = getOutputFrom(() -> Main.main(new String[] {}));
+
+		assertThat(output.out, equalTo(""));
+		assertThat(output.err, equalTo(
+				"Finds minimal word chains for the given words.\n" +
+				"\n" +
+				"Usage:\n" +
+				"  ./program <word_list_file> <word1> <word2>\n"
+		));
+	}
 }
