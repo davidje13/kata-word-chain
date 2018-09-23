@@ -17,9 +17,11 @@ public class WordChainFinderPerformanceTest {
 
 	@Before
 	public void populateWords() {
-		int size = 100000;
-		for (int i = size / 10; i < size; ++ i) {
-			words.add(Integer.toString(i));
+		int letters = 7;
+		int radix = 4;
+		int size = (int) Math.pow(radix, letters);
+		for (int i = size / radix; i < size; ++ i) {
+			words.add(Integer.toString(i, radix));
 		}
 	}
 
@@ -29,7 +31,8 @@ public class WordChainFinderPerformanceTest {
 		String finish = words.get(words.size() - 1);
 
 		double millis = TestUtils.averageTimeTakenMillis(5, () -> {
-			WordChainFinder finder = new WordChainFinder(words);
+			WordChainFinder finder = new WordChainFinder();
+			words.forEach(finder::registerWord);
 			Optional<List<String>> path = finder.traverse(start, finish);
 			assertThat(path.isPresent(), equalTo(true));
 		});

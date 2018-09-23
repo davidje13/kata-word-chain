@@ -9,98 +9,63 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
 
 public class WordChainFinder {
-	private final Map<String, Integer> wordLookup = new HashMap<>();
-	private final List<String> reverseWordLookup = new ArrayList<>();
-	private final Collection<Character> knownCharacters = new HashSet<>();
+	private final Collection<String> knownWords = new HashSet<>(1048576);
+	private final Collection<Character> knownChars = new HashSet<>(256);
 
-	public WordChainFinder(Iterable<String> words) {
-		for (String word : words) {
-			registerWord(word);
-		}
-	}
+	public void registerWord(String word) {
+		knownWords.add(word);
 
-	public WordChainFinder(Stream<String> words) {
-		words.forEach(this::registerWord);
-	}
-
-	private void registerWord(String word) {
-		int index = reverseWordLookup.size();
-		if (wordLookup.putIfAbsent(word, index) != null) {
-			return;
-		}
-
-		reverseWordLookup.add(word);
-		for (int i = 0; i < word.length(); ++ i) {
-			knownCharacters.add(word.charAt(i));
+		for (char c : word.toCharArray()) {
+			knownChars.add(c);
 		}
 	}
 
 	public Optional<List<String>> traverse(String from, String to) {
-		Integer fromIndex = wordLookup.get(from);
-		Integer toIndex = wordLookup.get(to);
-		if (fromIndex == null || toIndex == null) {
-			throw new IllegalArgumentException("Unknown word");
-		}
-
-		List<Integer> path = traverse(fromIndex, toIndex);
-		if (path == null) {
+		int size = from.length();
+		if (size == 0 || to.length() != size) {
 			return Optional.empty();
 		}
 
-		return Optional.of(path.stream()
-				.map(reverseWordLookup::get)
-				.collect(toList()));
-	}
-
-	private List<Integer> traverse(int fromIndex, int toIndex) {
-		int size = reverseWordLookup.size();
-		List<Integer> parents = new ArrayList<>();
-		Deque<Integer> queue = new ArrayDeque<>();
-		for (int i = 0; i < size; ++ i) {
-			parents.add(-1);
+		if (!knownWords.contains(from) || !knownWords.contains(to)) {
+			return Optional.empty();
 		}
-		parents.set(fromIndex, fromIndex);
-		queue.addLast(fromIndex);
 
-		all:
-		while (true) {
-			if (queue.isEmpty()) {
-				return null;
-			}
-			int curIndex = queue.removeFirst();
-			for (int nextIndex : getConnectedIndices(curIndex)) {
-				if (parents.get(nextIndex) == -1) {
-					parents.set(nextIndex, curIndex);
-					if (nextIndex == toIndex) {
-						break all;
-					}
-					queue.addLast(nextIndex);
+		Map<String, String> parents = new HashMap<>(knownWords.size());
+		Deque<String> queue = new ArrayDeque<>(knownWords.size());
+		parents.put(from, from);
+		queue.addLast(from);
+
+		while (!queue.isEmpty()) {
+			String cur = queue.removeFirst();
+			for (String next : getConnectedWords(cur)) {
+				if (parents.putIfAbsent(next, cur) != null) {
+					continue;
 				}
+				if (next.equals(to)) {
+					return Optional.of(followReversePath(parents, to));
+				}
+				queue.addLast(next);
 			}
 		}
-		return followReversePath(parents, toIndex);
+		return Optional.empty();
 	}
 
-	private List<Integer> getConnectedIndices(int index) {
-		List<Integer> result = new ArrayList<>();
-		char[] wordChars = reverseWordLookup.get(index).toCharArray();
+	private List<String> getConnectedWords(String word) {
+		List<String> result = new ArrayList<>(128);
+		char[] wordChars = word.toCharArray();
 
-		for (int i = 0; i < wordChars.length; ++ i) {
+		for (int i = 0; i < wordChars.length; ++i) {
 			char original = wordChars[i];
-			for (char c : knownCharacters) {
+			for (char c : knownChars) {
 				if (c == original) {
 					continue;
 				}
 				wordChars[i] = c;
-				String variant = new String(wordChars);
-				Integer varIndex = wordLookup.get(variant);
-				if (varIndex != null) {
-					result.add(varIndex);
+				String next = new String(wordChars);
+				if (knownWords.contains(next)) {
+					result.add(next);
 				}
 			}
 			wordChars[i] = original;
@@ -109,17 +74,20 @@ public class WordChainFinder {
 		return result;
 	}
 
-	private List<Integer> followReversePath(List<Integer> parents, int index) {
-		Deque<Integer> result = new ArrayDeque<>();
+	private List<String> followReversePath(
+			Map<String, String> parents,
+			String last
+	) {
+		Deque<String> result = new ArrayDeque<>();
 
-		int curIndex = index;
+		String cur = last;
 		while (true) {
-			result.addFirst(curIndex);
-			int prevIndex = parents.get(curIndex);
-			if (prevIndex == curIndex) {
+			result.addFirst(cur);
+			String prev = parents.get(cur);
+			if (prev.equals(cur)) {
 				return new ArrayList<>(result);
 			}
-			curIndex = prevIndex;
+			cur = prev;
 		}
 	}
 }

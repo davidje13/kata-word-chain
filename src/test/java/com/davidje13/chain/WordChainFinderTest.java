@@ -1,34 +1,38 @@
 package com.davidje13.chain;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class WordChainFinderTest {
-	private final List<String> words = asList(
-			"aaa",
-			"aab",
-			"abb",
-			"bbb",
-			"bbd",
-			"bad",
-			"ccc",
+	private final WordChainFinder finder = new WordChainFinder();
 
-			"aaaa",
-			"aaac",
-			"aabc",
-			"aabb",
-			"aaba"
-	);
+	@Before
+	public void registerWords() {
+		Stream.of(
+				"aaa",
+				"aab",
+				"abb",
+				"bbb",
+				"bbd",
+				"bad",
+				"ccc",
 
-	private final WordChainFinder finder = new WordChainFinder(words);
+				"aaaa",
+				"aaac",
+				"aabc",
+				"aabb",
+				"aaba"
+		).forEach(finder::registerWord);
+	}
 
 	@Test
 	public void traverse_canStepOneLetterAtATime() {
@@ -54,19 +58,27 @@ public class WordChainFinderTest {
 		assertThat(path, contains("aaaa", "aaba", "aabb"));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void traverse_rejectsUnknownStartWords() {
-		finder.traverse("nope", "aaaa");
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void traverse_rejectsUnknownFinishWords() {
-		finder.traverse("aaaa", "nope");
+	@Test
+	public void traverse_returnsNothing_ifStartWordIsUnknown() {
+		Optional<List<String>> optionalPath = finder.traverse("nope", "aaaa");
+		assertThat(optionalPath.isPresent(), equalTo(false));
 	}
 
 	@Test
-	public void traverse_returnsNothingIfNoPathIsFound() {
+	public void traverse_returnsNothing_ifEndWordIsUnknown() {
+		Optional<List<String>> optionalPath = finder.traverse("aaaa", "nope");
+		assertThat(optionalPath.isPresent(), equalTo(false));
+	}
+
+	@Test
+	public void traverse_returnsNothing_ifNoPathIsFound() {
 		Optional<List<String>> optionalPath = finder.traverse("aaa", "ccc");
+		assertThat(optionalPath.isPresent(), equalTo(false));
+	}
+
+	@Test
+	public void traverse_returnsNothing_ifWordsAreEmpty() {
+		Optional<List<String>> optionalPath = finder.traverse("", "");
 		assertThat(optionalPath.isPresent(), equalTo(false));
 	}
 

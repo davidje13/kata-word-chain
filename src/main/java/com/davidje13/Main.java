@@ -9,15 +9,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public class Main {
 	public static void main(String[] args) {
 		Charset utf8 = StandardCharsets.UTF_8;
+		WordChainFinder finder = new WordChainFinder();
 
 		try {
-			Stream<String> words = Files.lines(new File(args[0]).toPath(), utf8);
-			WordChainFinder finder = new WordChainFinder(words);
+			Files.lines(new File(args[0]).toPath(), utf8)
+					.forEach(finder::registerWord);
+
 			Optional<List<String>> path = finder.traverse(args[1], args[2]);
 			if (!path.isPresent()) {
 				System.err.println("No word chain found!");

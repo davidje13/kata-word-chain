@@ -19,3 +19,11 @@ The kata specification is here: http://codekata.com/kata/kata19-word-chains/
 ```
 
 The chain will be printed to stdout.
+
+## Profiling
+
+The executable can be profiled using:
+
+```sh
+./gradlew installDist && time ./build/install/word-chains/bin/word-chains /usr/share/dict/words cat dog
+```
