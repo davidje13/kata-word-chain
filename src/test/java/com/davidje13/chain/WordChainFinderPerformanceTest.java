@@ -6,11 +6,11 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.not;
 
 public class WordChainFinderPerformanceTest {
 	private final List<String> words = new ArrayList<>();
@@ -24,26 +24,16 @@ public class WordChainFinderPerformanceTest {
 	}
 
 	@Test
-	public void constructor_returnsQuickly() {
-		double millis = TestUtils.averageTimeTakenMillis(2, () ->
-				new WordChainFinder(words)
-		);
-
-		assertThat(millis, lessThan(1000.0));
-	}
-
-	@Test
-	public void traverse_routesQuickly() {
-		WordChainFinder finder = new WordChainFinder(words);
-
+	public void constructingAndTraversal_returnsQuickly() {
 		String start = words.get(0);
 		String finish = words.get(words.size() - 1);
-		assertThat(finder.traverse(start, finish), not(equalTo(null)));
 
-		double millis = TestUtils.averageTimeTakenMillis(20, () ->
-				finder.traverse(start, finish)
-		);
+		double millis = TestUtils.averageTimeTakenMillis(5, () -> {
+			WordChainFinder finder = new WordChainFinder(words);
+			Optional<List<String>> path = finder.traverse(start, finish);
+			assertThat(path.isPresent(), equalTo(true));
+		});
 
-		assertThat(millis, lessThan(50.0));
+		assertThat(millis, lessThan(300.0));
 	}
 }
