@@ -10,29 +10,32 @@ public class IntegrationTestUtils {
 		return loader.getResource(name);
 	}
 
-	public static String getStdOutFrom(Runnable runnable) {
+	public static Output getOutputFrom(Runnable runnable) {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		PrintStream stdout = System.out;
-
-		try {
-			System.setOut(new PrintStream(out));
-			runnable.run();
-			return out.toString();
-		} finally {
-			System.setOut(stdout);
-		}
-	}
-
-	public static String getStdErrFrom(Runnable runnable) {
 		ByteArrayOutputStream err = new ByteArrayOutputStream();
+		PrintStream stdout = System.out;
 		PrintStream stderr = System.err;
 
 		try {
+			System.setOut(new PrintStream(out));
 			System.setErr(new PrintStream(err));
+
 			runnable.run();
-			return err.toString();
+
+			return new Output(out.toString(), err.toString());
 		} finally {
+			System.setOut(stdout);
 			System.setErr(stderr);
+		}
+	}
+
+	public static class Output {
+		public final String out;
+		public final String err;
+
+		private Output(String out, String err) {
+			this.out = out;
+			this.err = err;
 		}
 	}
 }

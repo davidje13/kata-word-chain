@@ -1,63 +1,59 @@
 package com.davidje13;
 
+import com.davidje13.testutil.IntegrationTestUtils.Output;
 import org.junit.Test;
 
+import static com.davidje13.testutil.IntegrationTestUtils.getOutputFrom;
 import static com.davidje13.testutil.IntegrationTestUtils.getResource;
-import static com.davidje13.testutil.IntegrationTestUtils.getStdErrFrom;
-import static com.davidje13.testutil.IntegrationTestUtils.getStdOutFrom;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class MainIntegrationTest {
 	@Test
 	public void main_reportsTheShortestWordListToStdOut() {
-		String out = getStdOutFrom(() -> Main.main(new String[] {
+		Output output = getOutputFrom(() -> Main.main(new String[]{
 				getResource("word-list.txt").getPath(),
 				"cat",
 				"dog"
 		}));
 
-		assertThat(out, equalTo("cat\ncot\ncog\ndog\n"));
+		assertThat(output.out, equalTo("cat\ncot\ncog\ndog\n"));
+		assertThat(output.err, equalTo(""));
 	}
 
 	@Test
 	public void main_isCaseInsensitiveForInputWords() {
-		String out = getStdOutFrom(() -> Main.main(new String[] {
+		Output output = getOutputFrom(() -> Main.main(new String[] {
 				getResource("word-list.txt").getPath(),
 				"CAT",
 				"DOG"
 		}));
 
-		assertThat(out, equalTo("cat\ncot\ncog\ndog\n"));
+		assertThat(output.out, equalTo("cat\ncot\ncog\ndog\n"));
+		assertThat(output.err, equalTo(""));
 	}
 
 	@Test
 	public void main_loadsWordsFromWordListInLowercase() {
-		String out = getStdOutFrom(() -> Main.main(new String[] {
+		Output output = getOutputFrom(() -> Main.main(new String[] {
 				getResource("word-list.txt").getPath(),
 				"gold",
 				"gold"
 		}));
 
-		assertThat(out, equalTo("gold\n"));
+		assertThat(output.out, equalTo("gold\n"));
+		assertThat(output.err, equalTo(""));
 	}
 
 	@Test
 	public void main_reportsIfNoChainCanBeFound() {
-		String out = getStdOutFrom(() -> Main.main(new String[] {
+		Output output = getOutputFrom(() -> Main.main(new String[] {
 				getResource("word-list.txt").getPath(),
 				"do",
 				"at"
 		}));
 
-		assertThat(out, equalTo(""));
-
-		String err = getStdErrFrom(() -> Main.main(new String[] {
-				getResource("word-list.txt").getPath(),
-				"do",
-				"at"
-		}));
-
-		assertThat(err, equalTo("No word chain found!\n"));
+		assertThat(output.out, equalTo(""));
+		assertThat(output.err, equalTo("No word chain found!\n"));
 	}
 }
