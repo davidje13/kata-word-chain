@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
@@ -22,6 +23,10 @@ public class WordChainFinder {
 		for (String word : words) {
 			registerWord(word);
 		}
+	}
+
+	public WordChainFinder(Stream<String> words) {
+		words.forEach(this::registerWord);
 	}
 
 	private void registerWord(String word) {
