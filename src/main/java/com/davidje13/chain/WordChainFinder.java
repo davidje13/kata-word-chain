@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static java.util.Collections.singletonList;
+
 public class WordChainFinder {
 	private final Collection<String> knownWords = new HashSet<>(1048576);
 	private final Collection<Character> knownChars = new HashSet<>(256);
@@ -32,19 +34,35 @@ public class WordChainFinder {
 			return Optional.empty();
 		}
 
-		Map<String, String> parents = new HashMap<>(knownWords.size());
+		if (from.equals(to)) {
+			return Optional.of(singletonList(from));
+		}
+
+		Map<String, String> linkBack = new HashMap<>(knownWords.size() / 2);
+		Map<String, String> linkNext = new HashMap<>(knownWords.size() / 2);
 		Deque<String> queue = new ArrayDeque<>(knownWords.size());
-		parents.put(from, from);
+		linkBack.put(from, from);
+		linkNext.put(to, to);
 		queue.addLast(from);
+		queue.addLast(to);
 
 		while (!queue.isEmpty()) {
 			String cur = queue.removeFirst();
+			boolean forward = linkBack.containsKey(cur);
+			Map<String, String> linker = forward ? linkBack : linkNext;
+			Map<String, String> other = forward ? linkNext : linkBack;
 			for (String next : getConnectedWords(cur)) {
-				if (parents.putIfAbsent(next, cur) != null) {
+				if (linker.putIfAbsent(next, cur) != null) {
 					continue;
 				}
-				if (next.equals(to)) {
-					return Optional.of(followReversePath(parents, to));
+				if (other.containsKey(next)) {
+					return Optional.of(followPath(
+							from,
+							linkBack,
+							next,
+							linkNext,
+							to
+					));
 				}
 				queue.addLast(next);
 			}
@@ -74,20 +92,30 @@ public class WordChainFinder {
 		return result;
 	}
 
-	private List<String> followReversePath(
-			Map<String, String> parents,
+	private List<String> followPath(
+			String first,
+			Map<String, String> linkBack,
+			String mid,
+			Map<String, String> linkNext,
 			String last
 	) {
 		Deque<String> result = new ArrayDeque<>();
 
-		String cur = last;
-		while (true) {
+		String cur;
+		cur = mid;
+		while (!cur.equals(first)) {
+			cur = linkBack.get(cur);
 			result.addFirst(cur);
-			String prev = parents.get(cur);
-			if (prev.equals(cur)) {
-				return new ArrayList<>(result);
-			}
-			cur = prev;
 		}
+
+		result.addLast(mid);
+
+		cur = mid;
+		while (!cur.equals(last)) {
+			cur = linkNext.get(cur);
+			result.addLast(cur);
+		}
+
+		return new ArrayList<>(result);
 	}
 }

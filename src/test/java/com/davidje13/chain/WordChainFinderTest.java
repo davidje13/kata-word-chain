@@ -41,6 +41,12 @@ public class WordChainFinderTest {
 	}
 
 	@Test
+	public void traverse_canRouteFromWordToItself() {
+		List<String> path = finder.traverse("aaa", "aaa").get();
+		assertThat(path, contains("aaa"));
+	}
+
+	@Test
 	public void traverse_returnsStepByStepTransformations() {
 		List<String> path = finder.traverse("aaa", "bbb").get();
 		assertThat(path, contains("aaa", "aab", "abb", "bbb"));

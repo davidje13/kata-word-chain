@@ -37,6 +37,6 @@ public class WordChainFinderPerformanceTest {
 			assertThat(path.isPresent(), equalTo(true));
 		});
 
-		assertThat(millis, lessThan(300.0));
+		assertThat(millis, lessThan(50.0));
 	}
 }
