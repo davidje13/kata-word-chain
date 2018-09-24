@@ -20,6 +20,13 @@ The kata specification is here: http://codekata.com/kata/kata19-word-chains/
 
 The chain will be printed to stdout.
 
+Providing only one word will show the longest chain from that word.
+
+Providing no words will show the longest chain in the given dictionary
+(this is a slow operation)
+
+An example longest chain is from "apiole" to "chinik" (50 words).
+
 ## Profiling
 
 The executable can be profiled using:

@@ -55,7 +55,7 @@ public class Main {
 
 	private void reportFurthestWord() {
 		AtomicInteger lastProgress = new AtomicInteger(0);
-		List<String> path = finder.findGlobalFurthest((progress, best) -> {
+		List<String> path = finder.findGlobalFurthest((progress) -> {
 			int prog = (int) Math.floor(progress * 1000);
 			if (prog <= lastProgress.get()) {
 				return;
@@ -63,13 +63,7 @@ public class Main {
 			lastProgress.set(prog);
 
 			// Takes a long time - report progress
-			System.err.printf(
-					"%5.1f%% - best so far: %s -- %s (%d)\n",
-					prog * 0.1,
-					best.get(0),
-					best.get(best.size() - 1),
-					best.size()
-			);
+			System.err.printf("%5.1f%%\n", prog * 0.1);
 		});
 
 		printPath(path);

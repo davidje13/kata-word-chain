@@ -3,16 +3,21 @@ package com.davidje13.chain;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Comparator.comparingInt;
+import static java.util.stream.Collectors.toMap;
 
 public class WordChainFinder {
 	private final Collection<String> knownWords = new HashSet<>(1048576);
@@ -101,28 +106,32 @@ public class WordChainFinder {
 	}
 
 	public List<String> findGlobalFurthest() {
-		return findGlobalFurthest((progress, best) -> {});
+		return findGlobalFurthest((progress) -> {});
 	}
 
-	public List<String> findGlobalFurthest(
-			BiConsumer<Double, List<String>> progressCallback
-	) {
-		List<String> best = emptyList();
-		Collection<String> observed = new HashSet<>(knownWords.size());
-		int i = 0;
-		for (String from : knownWords) {
-			if (observed.contains(from)) {
-				continue;
-			}
-			List<String> path = findFurthest(from);
-			observed.addAll(path);
-			if (path.size() > best.size()) {
-				best = path;
-			}
-			++ i;
-			progressCallback.accept(i / (double) knownWords.size(), best);
-		}
-		return best;
+	public List<String> findGlobalFurthest(Consumer<Double> progressCallback) {
+		int size = knownWords.size();
+		Map<String, Boolean> observed = new ConcurrentHashMap<>(size);
+		AtomicInteger progress = new AtomicInteger(0);
+
+		return knownWords.parallelStream()
+				.map((from) -> {
+					if (observed.containsKey(from)) {
+						return Collections.<String>emptyList();
+					}
+					List<String> path = findFurthest(from);
+					observed.putAll(path.stream().collect(toMap(
+							(word) -> word,
+							(word) -> Boolean.TRUE
+					)));
+					return path;
+				})
+				.filter((list) -> !list.isEmpty())
+				.peek((list) -> progressCallback.accept(
+						progress.incrementAndGet() / (double) size
+				))
+				.max(comparingInt(List::size))
+				.orElse(emptyList());
 	}
 
 	private List<String> getConnectedWords(String word) {
