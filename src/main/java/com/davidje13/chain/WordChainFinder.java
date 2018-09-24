@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
@@ -112,7 +111,6 @@ public class WordChainFinder {
 	public List<String> findGlobalFurthest(Consumer<Double> progressCallback) {
 		int size = knownWords.size();
 		Map<String, Boolean> observed = new ConcurrentHashMap<>(size);
-		AtomicInteger progress = new AtomicInteger(0);
 
 		return knownWords.parallelStream()
 				.map((from) -> {
@@ -128,7 +126,7 @@ public class WordChainFinder {
 				})
 				.filter((list) -> !list.isEmpty())
 				.peek((list) -> progressCallback.accept(
-						progress.incrementAndGet() / (double) size
+						observed.size() / (double) size
 				))
 				.max(comparingInt(List::size))
 				.orElse(emptyList());
