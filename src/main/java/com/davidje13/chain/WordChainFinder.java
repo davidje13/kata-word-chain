@@ -3,7 +3,6 @@ package com.davidje13.chain;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,9 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparingInt;
 import static java.util.stream.Collectors.toMap;
@@ -105,29 +104,45 @@ public class WordChainFinder {
 	}
 
 	public List<String> findGlobalFurthest() {
-		return findGlobalFurthest((progress) -> {});
-	}
-
-	public List<String> findGlobalFurthest(Consumer<Double> progressCallback) {
 		int size = knownWords.size();
-		Map<String, Boolean> observed = new ConcurrentHashMap<>(size);
+		Collection<String> observed = newSetFromMap(new ConcurrentHashMap<>(size));
+
+		Map<String, List<String>> connectedWords = knownWords.parallelStream()
+				.collect(toMap((word) -> word, this::getConnectedWords));
+
+		ThreadLocal<Map<String, String>> commonLinkBack =
+				ThreadLocal.withInitial(() -> new HashMap<>(size));
+		ThreadLocal<Deque<String>> commonQueue =
+				ThreadLocal.withInitial(() -> new ArrayDeque<>(size));
 
 		return knownWords.parallelStream()
+				.filter((from) -> !observed.contains(from))
 				.map((from) -> {
-					if (observed.containsKey(from)) {
-						return Collections.<String>emptyList();
+					Map<String, String> linkBack = commonLinkBack.get();
+					Deque<String> queue = commonQueue.get();
+					linkBack.clear();
+					linkBack.put(from, from);
+					queue.addLast(from);
+
+					String cur = from;
+					while (!queue.isEmpty()) {
+						cur = queue.removeFirst();
+						for (String next : connectedWords.get(cur)) {
+							if (linkBack.putIfAbsent(next, cur) == null) {
+								queue.addLast(next);
+							}
+						}
 					}
-					List<String> path = findFurthest(from);
-					observed.putAll(path.stream().collect(toMap(
-							(word) -> word,
-							(word) -> Boolean.TRUE
-					)));
-					return path;
+
+					return followPath(
+							from,
+							linkBack,
+							cur,
+							null,
+							cur
+					);
 				})
-				.filter((list) -> !list.isEmpty())
-				.peek((list) -> progressCallback.accept(
-						observed.size() / (double) size
-				))
+				.peek(observed::addAll)
 				.max(comparingInt(List::size))
 				.orElse(emptyList());
 	}

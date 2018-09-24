@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -54,17 +53,8 @@ public class Main {
 	}
 
 	private void reportFurthestWord() {
-		AtomicInteger lastProgress = new AtomicInteger(0);
-		List<String> path = finder.findGlobalFurthest((progress) -> {
-			int prog = (int) Math.floor(progress * 1000);
-			if (prog <= lastProgress.get()) {
-				return;
-			}
-			lastProgress.set(prog);
-
-			// Takes a long time - report progress
-			System.err.printf("%5.1f%%\n", prog * 0.1);
-		});
+		System.err.println("Finding furthest words (may take some time)...");
+		List<String> path = finder.findGlobalFurthest();
 
 		printPath(path);
 	}
