@@ -30,7 +30,9 @@ public class WordChainFinderTest {
 				"aaac",
 				"aabc",
 				"aabb",
-				"aaba"
+				"aaba",
+
+				"meh"
 		).forEach(finder::registerWord);
 	}
 
@@ -92,5 +94,38 @@ public class WordChainFinderTest {
 	public void traverse_cannotAddOrRemoveLetters() {
 		Optional<List<String>> optionalPath = finder.traverse("aaa", "aaaa");
 		assertThat(optionalPath.isPresent(), equalTo(false));
+	}
+
+	@Test
+	public void findFurthest_returnsPathToFurthestReachableWordFromGivenWord() {
+		List<String> path = finder.findFurthest("aaa");
+		assertThat(path, contains("aaa", "aab", "abb", "bbb", "bbd", "bad"));
+	}
+
+	@Test
+	public void findFurthest_returnsInputWord_ifUnknown() {
+		List<String> path = finder.findFurthest("nope");
+		assertThat(path, contains("nope"));
+	}
+
+	@Test
+	public void findFurthest_returnsInputWord_ifNoPossibleTransformations() {
+		List<String> path = finder.findFurthest("meh");
+		assertThat(path, contains("meh"));
+	}
+
+	@Test
+	public void findGlobalFurthest_returnsLongestPathInWholeDictionary() {
+		List<String> path = finder.findGlobalFurthest();
+		assertThat(path, contains("aaa", "aab", "abb", "bbb", "bbd", "bad"));
+	}
+
+	@Test
+	public void findGlobalFurthest_returnsSingleElementIfNoPathsInDictionary() {
+		WordChainFinder smallFinder = new WordChainFinder();
+		smallFinder.registerWord("aaa");
+
+		List<String> path = smallFinder.findGlobalFurthest();
+		assertThat(path, contains("aaa"));
 	}
 }

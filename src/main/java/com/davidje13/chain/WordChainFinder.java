@@ -9,7 +9,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class WordChainFinder {
@@ -25,8 +27,7 @@ public class WordChainFinder {
 	}
 
 	public Optional<List<String>> traverse(String from, String to) {
-		int size = from.length();
-		if (size == 0 || to.length() != size) {
+		if (from.isEmpty() || from.length() != to.length()) {
 			return Optional.empty();
 		}
 
@@ -68,6 +69,60 @@ public class WordChainFinder {
 			}
 		}
 		return Optional.empty();
+	}
+
+	public List<String> findFurthest(String from) {
+		if (!knownWords.contains(from)) {
+			return singletonList(from);
+		}
+
+		Map<String, String> linkBack = new HashMap<>(knownWords.size());
+		Deque<String> queue = new ArrayDeque<>(knownWords.size());
+		linkBack.put(from, from);
+		queue.addLast(from);
+
+		String cur = from;
+		while (!queue.isEmpty()) {
+			cur = queue.removeFirst();
+			for (String next : getConnectedWords(cur)) {
+				if (linkBack.putIfAbsent(next, cur) == null) {
+					queue.addLast(next);
+				}
+			}
+		}
+
+		return followPath(
+				from,
+				linkBack,
+				cur,
+				null,
+				cur
+		);
+	}
+
+	public List<String> findGlobalFurthest() {
+		return findGlobalFurthest((progress, best) -> {});
+	}
+
+	public List<String> findGlobalFurthest(
+			BiConsumer<Double, List<String>> progressCallback
+	) {
+		List<String> best = emptyList();
+		Collection<String> observed = new HashSet<>(knownWords.size());
+		int i = 0;
+		for (String from : knownWords) {
+			if (observed.contains(from)) {
+				continue;
+			}
+			List<String> path = findFurthest(from);
+			observed.addAll(path);
+			if (path.size() > best.size()) {
+				best = path;
+			}
+			++ i;
+			progressCallback.accept(i / (double) knownWords.size(), best);
+		}
+		return best;
 	}
 
 	private List<String> getConnectedWords(String word) {

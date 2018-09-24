@@ -6,7 +6,9 @@ import org.junit.Test;
 import static com.davidje13.testutil.IntegrationTestUtils.getOutputFrom;
 import static com.davidje13.testutil.IntegrationTestUtils.getResource;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 
 public class MainIntegrationTest {
 	@Test
@@ -58,8 +60,34 @@ public class MainIntegrationTest {
 	}
 
 	@Test
+	public void main_reportsPathToFurthestReachableWordIfOnlyOneIsGiven() {
+		Output output = getOutputFrom(() -> Main.main(new String[] {
+				getResource("word-list.txt").getPath(),
+				"cat"
+		}));
+
+		assertThat(output.out, equalTo("cat\ncot\ncog\ndog\ndig\n"));
+		assertThat(output.err, equalTo(""));
+	}
+
+	@Test
+	public void main_reportsLongestPathIfNoWordsAreGiven() {
+		Output output = getOutputFrom(() -> Main.main(new String[] {
+				getResource("word-list.txt").getPath()
+		}));
+
+		assertThat(output.out, containsString("bat\n"));
+		assertThat(output.out, containsString("dig\n"));
+		assertThat(output.out, not(containsString("rot\n")));
+	}
+
+	@Test
 	public void main_reportsIfTheWordListCannotBeLoaded() {
-		Output output = getOutputFrom(() -> Main.main(new String[] {"nope"}));
+		Output output = getOutputFrom(() -> Main.main(new String[] {
+				"nope",
+				"foo",
+				"bar"
+		}));
 
 		assertThat(output.out, equalTo(""));
 		assertThat(output.err, equalTo(
@@ -72,11 +100,6 @@ public class MainIntegrationTest {
 		Output output = getOutputFrom(() -> Main.main(new String[] {}));
 
 		assertThat(output.out, equalTo(""));
-		assertThat(output.err, equalTo(
-				"Finds minimal word chains for the given words.\n" +
-				"\n" +
-				"Usage:\n" +
-				"  ./program <word_list_file> <word1> <word2>\n"
-		));
+		assertThat(output.err, containsString("Usage:"));
 	}
 }

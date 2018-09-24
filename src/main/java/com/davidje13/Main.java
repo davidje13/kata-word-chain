@@ -8,45 +8,106 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 public class Main {
+	private final WordChainFinder finder = new WordChainFinder();
+
 	public static void main(String[] args) {
+		Main main = new Main();
+
 		if (args.length == 0) {
-			printInfo();
+			main.printInfo();
 			return;
 		}
 
 		String wordListFile = args[0];
 
-		WordChainFinder finder = new WordChainFinder();
 		try {
-			Files.lines(new File(wordListFile).toPath(), StandardCharsets.UTF_8)
-					.map(String::toLowerCase)
-					.forEach(finder::registerWord);
+			main.loadWords(new File(wordListFile));
 		} catch(IOException e) {
 			System.err.println("Failed to load word list from " + wordListFile);
 			return;
 		}
 
-		Optional<List<String>> path = finder.traverse(
-				args[1].toLowerCase(),
-				args[2].toLowerCase()
-		);
+		List<String> inputs = Stream.of(args)
+				.skip(1)
+				.map(String::toLowerCase)
+				.collect(toList());
+
+		if (inputs.isEmpty()) {
+			main.reportFurthestWord();
+		} else if (inputs.size() == 1) {
+			main.reportFurthestWord(inputs.get(0));
+		} else {
+			main.reportWordChain(inputs.get(0), inputs.get(1));
+		}
+	}
+
+	private void loadWords(File file) throws IOException {
+		Files.lines(file.toPath(), StandardCharsets.UTF_8)
+				.map(String::toLowerCase)
+				.forEach(finder::registerWord);
+	}
+
+	private void reportFurthestWord() {
+		AtomicInteger lastProgress = new AtomicInteger(0);
+		List<String> path = finder.findGlobalFurthest((progress, best) -> {
+			int prog = (int) Math.floor(progress * 1000);
+			if (prog <= lastProgress.get()) {
+				return;
+			}
+			lastProgress.set(prog);
+
+			// Takes a long time - report progress
+			System.err.printf(
+					"%5.1f%% - best so far: %s -- %s (%d)\n",
+					prog * 0.1,
+					best.get(0),
+					best.get(best.size() - 1),
+					best.size()
+			);
+		});
+
+		printPath(path);
+	}
+
+	private void reportFurthestWord(String from) {
+		printPath(finder.findFurthest(from));
+	}
+
+	private void reportWordChain(String from, String to) {
+		Optional<List<String>> path = finder.traverse(from, to);
 
 		if (!path.isPresent()) {
 			System.err.println("No word chain found!");
 			return;
 		}
 
-		for (String word : path.get()) {
+		printPath(path.get());
+	}
+
+	private void printPath(Iterable<String> path) {
+		for(String word : path) {
 			System.out.println(word);
 		}
 	}
 
-	private static void printInfo() {
+	private void printInfo() {
 		System.err.println("Finds minimal word chains for the given words.");
 		System.err.println();
 		System.err.println("Usage:");
-		System.err.println("  ./program <word_list_file> <word1> <word2>");
+		System.err.println();
+		System.err.println("  Find word chain:");
+		System.err.println("    ./program <word_list_file> <word1> <word2>");
+		System.err.println();
+		System.err.println("  Find furthest reachable word:");
+		System.err.println("    ./program <word_list_file> <word>");
+		System.err.println();
+		System.err.println("  Find longest word chain in dictionary (slow!):");
+		System.err.println("    ./program <word_list_file>");
 	}
 }
