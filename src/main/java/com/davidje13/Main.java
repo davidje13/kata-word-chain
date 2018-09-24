@@ -53,7 +53,6 @@ public class Main {
 	}
 
 	private void reportFurthestWord() {
-		System.err.println("Finding furthest words (may take some time)...");
 		List<String> path = finder.findGlobalFurthest();
 
 		printPath(path);

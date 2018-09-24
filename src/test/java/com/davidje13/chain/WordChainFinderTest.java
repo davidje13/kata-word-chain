@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -117,7 +118,10 @@ public class WordChainFinderTest {
 	@Test
 	public void findGlobalFurthest_returnsLongestPathInWholeDictionary() {
 		List<String> path = finder.findGlobalFurthest();
-		assertThat(path, contains("aaa", "aab", "abb", "bbb", "bbd", "bad"));
+		assertThat(path, anyOf(
+				contains("aaa", "aab", "abb", "bbb", "bbd", "bad"),
+				contains("bad", "bbd", "bbb", "abb", "aab", "aaa")
+		));
 	}
 
 	@Test

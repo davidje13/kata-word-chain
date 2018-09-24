@@ -2,20 +2,21 @@ package com.davidje13.chain;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparingInt;
-import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toList;
 
 public class WordChainFinder {
 	private final Collection<String> knownWords = new HashSet<>(1048576);
@@ -105,46 +106,60 @@ public class WordChainFinder {
 
 	public List<String> findGlobalFurthest() {
 		int size = knownWords.size();
-		Collection<String> observed = newSetFromMap(new ConcurrentHashMap<>(size));
 
-		Map<String, List<String>> connectedWords = knownWords.parallelStream()
-				.collect(toMap((word) -> word, this::getConnectedWords));
+		List<String> index2word = new ArrayList<>(knownWords);
+		Map<String, Integer> word2index = new HashMap<>(size);
+		int[][] connected = new int[size][];
 
-		ThreadLocal<Map<String, String>> commonLinkBack =
-				ThreadLocal.withInitial(() -> new HashMap<>(size));
-		ThreadLocal<Deque<String>> commonQueue =
-				ThreadLocal.withInitial(() -> new ArrayDeque<>(size));
+		for (int index = 0; index < size; ++ index) {
+			word2index.put(index2word.get(index), index);
+		}
+		IntStream.range(0, size).parallel().forEach((index) ->
+				connected[index] = getConnectedWords(index2word.get(index)).stream()
+						.mapToInt(word2index::get)
+						.toArray()
+		);
 
-		return knownWords.parallelStream()
-				.filter((from) -> !observed.contains(from))
-				.map((from) -> {
-					Map<String, String> linkBack = commonLinkBack.get();
-					Deque<String> queue = commonQueue.get();
-					linkBack.clear();
-					linkBack.put(from, from);
-					queue.addLast(from);
+		ThreadLocal<int[]> commonLinkBack = ThreadLocal.withInitial(() -> new int[size]);
+		ThreadLocal<int[]> commonQueue = ThreadLocal.withInitial(() -> new int[size]);
+		boolean[] observed = new boolean[size];
 
-					String cur = from;
-					while (!queue.isEmpty()) {
-						cur = queue.removeFirst();
-						for (String next : connectedWords.get(cur)) {
-							if (linkBack.putIfAbsent(next, cur) == null) {
-								queue.addLast(next);
+		return IntStream.range(0, size).parallel()
+				.filter((fromIndex) -> !observed[fromIndex])
+				.mapToObj((fromIndex) -> {
+					int[] linkBack = commonLinkBack.get();
+					Arrays.fill(linkBack, -1);
+
+					int[] queue = commonQueue.get();
+					int queueHead = 0;
+					int queueTail = 0;
+
+					linkBack[fromIndex] = fromIndex;
+					queue[queueHead] = fromIndex;
+					++ queueHead;
+
+					int curIndex = fromIndex;
+					while (queueTail < queueHead) {
+						curIndex = queue[queueTail];
+						++ queueTail;
+						for (int nextIndex : connected[curIndex]) {
+							if (linkBack[nextIndex] == -1) {
+								linkBack[nextIndex] = curIndex;
+								queue[queueHead] = nextIndex;
+								++ queueHead;
 							}
 						}
 					}
 
-					return followPath(
-							from,
-							linkBack,
-							cur,
-							null,
-							cur
-					);
+					return followPathReverse(fromIndex, linkBack, curIndex);
 				})
-				.peek(observed::addAll)
+				.peek((list) -> list.forEach((i) -> observed[i] = true))
 				.max(comparingInt(List::size))
-				.orElse(emptyList());
+				.map(this::reverseList)
+				.orElse(emptyList())
+				.stream()
+				.map(index2word::get)
+				.collect(toList());
 	}
 
 	private List<String> getConnectedWords(String word) {
@@ -169,16 +184,16 @@ public class WordChainFinder {
 		return result;
 	}
 
-	private List<String> followPath(
-			String first,
-			Map<String, String> linkBack,
-			String mid,
-			Map<String, String> linkNext,
-			String last
+	private <T> List<T> followPath(
+			T first,
+			Map<T, T> linkBack,
+			T mid,
+			Map<T, T> linkNext,
+			T last
 	) {
-		Deque<String> result = new ArrayDeque<>();
+		Deque<T> result = new ArrayDeque<>();
 
-		String cur;
+		T cur;
 		cur = mid;
 		while (!cur.equals(first)) {
 			cur = linkBack.get(cur);
@@ -194,5 +209,28 @@ public class WordChainFinder {
 		}
 
 		return new ArrayList<>(result);
+	}
+
+	private List<Integer> followPathReverse(
+			int first,
+			int[] linkBack,
+			int last
+	) {
+		List<Integer> result = new ArrayList<>();
+
+		int cur = last;
+		result.add(cur);
+		while (cur != first) {
+			cur = linkBack[cur];
+			result.add(cur);
+		}
+
+		return result;
+	}
+
+	private <T> List<T> reverseList(List<T> list) {
+		List<T> result = new ArrayList<>(list);
+		Collections.reverse(result);
+		return result;
 	}
 }
