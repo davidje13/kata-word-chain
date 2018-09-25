@@ -95,13 +95,7 @@ public class WordChainFinder {
 			}
 		}
 
-		return followPath(
-				from,
-				linkBack,
-				cur,
-				null,
-				cur
-		);
+		return followPath(from, linkBack, cur, null, cur);
 	}
 
 	public List<String> findGlobalFurthest() {
@@ -120,40 +114,7 @@ public class WordChainFinder {
 						.toArray()
 		);
 
-		ThreadLocal<int[]> commonLinkBack = ThreadLocal.withInitial(() -> new int[size]);
-		ThreadLocal<int[]> commonQueue = ThreadLocal.withInitial(() -> new int[size]);
-
-		return IntStream.range(0, size).parallel()
-				.mapToObj((fromIndex) -> {
-					int[] linkBack = commonLinkBack.get();
-					Arrays.fill(linkBack, -1);
-
-					int[] queue = commonQueue.get();
-					int queueHead = 0;
-					int queueTail = 0;
-
-					linkBack[fromIndex] = fromIndex;
-					queue[queueHead] = fromIndex;
-					++ queueHead;
-
-					int curIndex = fromIndex;
-					while (queueTail < queueHead) {
-						curIndex = queue[queueTail];
-						++ queueTail;
-						for (int nextIndex : connected[curIndex]) {
-							if (linkBack[nextIndex] == -1) {
-								linkBack[nextIndex] = curIndex;
-								queue[queueHead] = nextIndex;
-								++ queueHead;
-							}
-						}
-					}
-
-					return followPathReverse(fromIndex, linkBack, curIndex);
-				})
-				.max(comparingInt(List::size))
-				.map(this::reverseList)
-				.orElse(emptyList())
+		return findGlobalFurthest(connected)
 				.stream()
 				.map(index2word::get)
 				.collect(toList());
@@ -181,7 +142,7 @@ public class WordChainFinder {
 		return result;
 	}
 
-	private <T> List<T> followPath(
+	private static <T> List<T> followPath(
 			T first,
 			Map<T, T> linkBack,
 			T mid,
@@ -208,7 +169,46 @@ public class WordChainFinder {
 		return new ArrayList<>(result);
 	}
 
-	private List<Integer> followPathReverse(
+	private static List<Integer> findGlobalFurthest(int[][] connected) {
+		int size = connected.length;
+
+		ThreadLocal<int[]> commonLinkBack = ThreadLocal.withInitial(() -> new int[size]);
+		ThreadLocal<int[]> commonQueue = ThreadLocal.withInitial(() -> new int[size]);
+
+		return IntStream.range(0, size).parallel()
+				.mapToObj((fromIndex) -> {
+					int[] linkBack = commonLinkBack.get();
+					Arrays.fill(linkBack, -1);
+
+					int[] queue = commonQueue.get();
+					int queueHead = 0;
+					int queueTail = 0;
+
+					linkBack[fromIndex] = fromIndex;
+					queue[queueHead] = fromIndex;
+					++ queueHead;
+
+					int curIndex;
+					do {
+						curIndex = queue[queueTail];
+						++ queueTail;
+						for (int nextIndex : connected[curIndex]) {
+							if (linkBack[nextIndex] == -1) {
+								linkBack[nextIndex] = curIndex;
+								queue[queueHead] = nextIndex;
+								++ queueHead;
+							}
+						}
+					} while (queueTail < queueHead);
+
+					return followPathReverse(fromIndex, linkBack, curIndex);
+				})
+				.max(comparingInt(List::size))
+				.map(WordChainFinder::reverseList)
+				.orElse(emptyList());
+	}
+
+	private static List<Integer> followPathReverse(
 			int first,
 			int[] linkBack,
 			int last
@@ -225,7 +225,7 @@ public class WordChainFinder {
 		return result;
 	}
 
-	private <T> List<T> reverseList(List<T> list) {
+	private static <T> List<T> reverseList(List<T> list) {
 		List<T> result = new ArrayList<>(list);
 		Collections.reverse(result);
 		return result;
