@@ -122,10 +122,8 @@ public class WordChainFinder {
 
 		ThreadLocal<int[]> commonLinkBack = ThreadLocal.withInitial(() -> new int[size]);
 		ThreadLocal<int[]> commonQueue = ThreadLocal.withInitial(() -> new int[size]);
-		boolean[] observed = new boolean[size];
 
 		return IntStream.range(0, size).parallel()
-				.filter((fromIndex) -> !observed[fromIndex])
 				.mapToObj((fromIndex) -> {
 					int[] linkBack = commonLinkBack.get();
 					Arrays.fill(linkBack, -1);
@@ -153,7 +151,6 @@ public class WordChainFinder {
 
 					return followPathReverse(fromIndex, linkBack, curIndex);
 				})
-				.peek((list) -> list.forEach((i) -> observed[i] = true))
 				.max(comparingInt(List::size))
 				.map(this::reverseList)
 				.orElse(emptyList())
